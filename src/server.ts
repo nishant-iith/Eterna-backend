@@ -17,7 +17,7 @@ const start = async () => {
         await app.register(websocket);
 
         // 1. HTTP Endpoint: Submit Order
-        app.post('/orders', async (request, reply) => {
+        app.post('/api/orders/execute', async (request, reply) => {
             const { tokenIn, tokenOut, amount } = request.body as any;
             const orderId = uuidv4();
 

@@ -31,14 +31,24 @@ export const orderWorker = new Worker('order-queue', async (job: Job) => {
         // Call Mock Router
         const bestRoute = await router.findBestRoute(tokenIn, amount);
 
-        // 2. Update Status: Executing
+        // 2. Update Status: Building
         await job.updateProgress({
             orderId,
-            status: 'executing',
-            stage: `Route found: ${bestRoute.dex} @ $${bestRoute.price.toFixed(2)}. Building Transaction...`
+            status: 'building',
+            stage: `Route found: ${bestRoute.dex} @ $${bestRoute.price.toFixed(2)}. Building transaction...`
         });
 
-        // Call Mock Execution
+        // Simulate building transaction
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 3. Update Status: Submitted
+        await job.updateProgress({
+            orderId,
+            status: 'submitted',
+            stage: 'Transaction submitted to network. Waiting for confirmation...'
+        });
+
+        // Call Mock Execution (confirmation)
         const txHash = await router.executeSwap(bestRoute.dex);
 
         // Calculate amount out (simplified calculation)
@@ -98,7 +108,7 @@ export const orderWorker = new Worker('order-queue', async (job: Job) => {
 
 }, {
     connection: redisConnection,
-    concurrency: 5, // Can handle 5 orders at once
+    concurrency: 10, // Can handle up to 10 orders concurrently
 });
 
 // Listen for failed jobs (after all retries exhausted)

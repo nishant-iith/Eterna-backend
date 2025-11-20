@@ -6,7 +6,7 @@ export interface OrderRequest {
 
 export interface OrderState {
     orderId: string;
-    status: 'pending' | 'routing' | 'executing' | 'completed' | 'failed';
+    status: 'pending' | 'routing' | 'building' | 'submitted' | 'completed' | 'failed';
     stage?: string;    // Descriptive text for UI
     data?: any;        // Transaction hash, final price, etc.
 }
