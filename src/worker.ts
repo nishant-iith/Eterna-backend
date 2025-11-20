@@ -8,63 +8,116 @@ const router = new MockDexRouter();
 
 export const orderWorker = new Worker('order-queue', async (job: Job) => {
     const { orderId, tokenIn, tokenOut, amount } = job.data;
-    console.log(`[Worker] Processing Order ${orderId}`);
+    const attemptNumber = job.attemptsMade + 1;
 
-    // Save initial order to database
-    await saveOrder({
-        orderId,
-        tokenIn,
-        tokenOut,
-        amountIn: amount,
-        status: 'pending',
-    });
+    console.log(`[Worker] Processing Order ${orderId} (Attempt ${attemptNumber}/3)`);
 
-    // Artificial delay to test WebSocket
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+        // Save initial order to database
+        await saveOrder({
+            orderId,
+            tokenIn,
+            tokenOut,
+            amountIn: amount,
+            status: 'pending',
+        });
 
-    // 1. Update Status: Routing
-    await job.updateProgress({ orderId, status: 'routing', stage: 'Fetching quotes from Raydium & Meteora...' });
+        // Artificial delay to test WebSocket
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Call Mock Router
-    const bestRoute = await router.findBestRoute(tokenIn, amount);
+        // 1. Update Status: Routing
+        await job.updateProgress({ orderId, status: 'routing', stage: 'Fetching quotes from Raydium & Meteora...' });
 
-    // 2. Update Status: Executing
-    await job.updateProgress({
-        orderId,
-        status: 'executing',
-        stage: `Route found: ${bestRoute.dex} @ $${bestRoute.price.toFixed(2)}. Building Transaction...`
-    });
+        // Call Mock Router
+        const bestRoute = await router.findBestRoute(tokenIn, amount);
 
-    // Call Mock Execution
-    const txHash = await router.executeSwap(bestRoute.dex);
+        // 2. Update Status: Executing
+        await job.updateProgress({
+            orderId,
+            status: 'executing',
+            stage: `Route found: ${bestRoute.dex} @ $${bestRoute.price.toFixed(2)}. Building Transaction...`
+        });
 
-    // Calculate amount out (simplified calculation)
-    const amountOut = amount * bestRoute.price;
+        // Call Mock Execution
+        const txHash = await router.executeSwap(bestRoute.dex);
 
-    // Save completed order to database
-    await saveOrder({
-        orderId,
-        tokenIn,
-        tokenOut,
-        amountIn: amount,
-        amountOut,
-        price: bestRoute.price,
-        status: 'completed',
-        txHash,
-        dexName: bestRoute.dex,
-    });
+        // Calculate amount out (simplified calculation)
+        const amountOut = amount * bestRoute.price;
 
-    console.log(`[Worker] Order ${orderId} completed and saved to database`);
+        // Save completed order to database
+        await saveOrder({
+            orderId,
+            tokenIn,
+            tokenOut,
+            amountIn: amount,
+            amountOut,
+            price: bestRoute.price,
+            status: 'completed',
+            txHash,
+            dexName: bestRoute.dex,
+        });
 
-    // 3. Final Result
-    return {
-        status: 'completed',
-        txHash,
-        finalPrice: bestRoute.price,
-        dex: bestRoute.dex
-    };
+        console.log(`[Worker] Order ${orderId} completed and saved to database`);
+
+        // 3. Final Result
+        return {
+            status: 'completed',
+            txHash,
+            finalPrice: bestRoute.price,
+            dex: bestRoute.dex
+        };
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`[Worker] Error processing order ${orderId} (Attempt ${attemptNumber}):`, errorMessage);
+
+        // Update progress to show error
+        await job.updateProgress({
+            orderId,
+            status: 'failed',
+            stage: `Error: ${errorMessage}`,
+            error: errorMessage,
+            attempt: attemptNumber
+        });
+
+        // If this is the last attempt, save as failed in database
+        if (attemptNumber >= 3) {
+            await saveOrder({
+                orderId,
+                tokenIn,
+                tokenOut,
+                amountIn: amount,
+                status: 'failed',
+            });
+            console.error(`[Worker] Order ${orderId} permanently failed after 3 attempts`);
+        }
+
+        // Re-throw error to trigger BullMQ retry
+        throw error;
+    }
 
 }, {
     connection: redisConnection,
-    concurrency: 5 // Can handle 5 orders at once
+    concurrency: 5, // Can handle 5 orders at once
+});
+
+// Listen for failed jobs (after all retries exhausted)
+orderWorker.on('failed', async (job, err) => {
+    if (job) {
+        const { orderId } = job.data;
+        console.error(`[Worker] Job ${job.id} (Order ${orderId}) failed permanently:`, err.message);
+
+        // Send final failure notification via progress
+        await job.updateProgress({
+            orderId,
+            status: 'failed',
+            stage: 'Order failed after 3 attempts',
+            error: err.message
+        });
+    }
+});
+
+// Log successful completions
+orderWorker.on('completed', (job) => {
+    console.log(`[Worker] Job ${job.id} completed successfully`);
 });

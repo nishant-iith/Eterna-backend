@@ -21,8 +21,14 @@ const start = async () => {
             const { tokenIn, tokenOut, amount } = request.body as any;
             const orderId = uuidv4();
 
-            // Add to BullMQ
-            await orderQueue.add('trade', { orderId, tokenIn, tokenOut, amount });
+            // Add to BullMQ with retry configuration
+            await orderQueue.add('trade', { orderId, tokenIn, tokenOut, amount }, {
+                attempts: 3, // Retry up to 3 times
+                backoff: {
+                    type: 'exponential', // Exponential backoff
+                    delay: 2000, // Initial delay: 2s, then 4s, then 8s
+                }
+            });
 
             return { orderId, status: 'pending', message: 'Order queued. Connect to WS for updates.' };
         });
@@ -56,14 +62,28 @@ const start = async () => {
                 }
             };
 
+            // Listen for "failed" events
+            const onFailed = ({ jobId, failedReason }: any) => {
+                if (socket.readyState === 1) {
+                    console.log(`Sending failure to client:`, failedReason);
+                    socket.send(JSON.stringify({
+                        status: 'failed',
+                        error: failedReason,
+                        message: 'Order failed after 3 retry attempts'
+                    }));
+                }
+            };
+
             queueEvents.on('progress', onProgress);
             queueEvents.on('completed', onCompleted);
+            queueEvents.on('failed', onFailed);
 
             // Cleanup listeners on disconnect
             socket.on('close', () => {
                 console.log(`Client disconnected for order: ${orderId}`);
                 queueEvents.off('progress', onProgress);
                 queueEvents.off('completed', onCompleted);
+                queueEvents.off('failed', onFailed);
             });
 
             socket.on('error', (err: Error) => {
