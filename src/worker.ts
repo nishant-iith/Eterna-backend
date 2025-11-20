@@ -22,7 +22,7 @@ export const orderWorker = new Worker('order-queue', async (job: Job) => {
             status: 'pending',
         });
 
-        // Artificial delay to test WebSocket
+        // Artificial delay to test WebSocket (for testing purposes)
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // 1. Update Status: Routing
