@@ -9,6 +9,9 @@ export const orderWorker = new Worker('order-queue', async (job: Job) => {
     const { orderId, tokenIn, amount } = job.data;
     console.log(`[Worker] Processing Order ${orderId}`);
 
+    // Artificial delay to test WebSocket
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
     // 1. Update Status: Routing
     await job.updateProgress({ orderId, status: 'routing', stage: 'Fetching quotes from Raydium & Meteora...' });
     
