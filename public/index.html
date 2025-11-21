@@ -389,8 +389,10 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:3000';
-        const WS_URL = 'ws://localhost:3000';
+        // Dynamic URL configuration - works both locally and in production
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_URL = isLocalhost ? 'http://localhost:3000' : window.location.origin;
+        const WS_URL = isLocalhost ? 'ws://localhost:3000' : `wss://${window.location.host}`;
         const orders = new Map();
 
         document.getElementById('orderForm').addEventListener('submit', async (e) => {
