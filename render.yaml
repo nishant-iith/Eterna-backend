@@ -85,14 +85,17 @@ services:
           name: eterna-redis
           property: port
 
+  # Redis Service
+  - type: redis
+    name: eterna-redis
+    region: oregon
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
 databases:
   - name: eterna-db
     databaseName: order_db
     user: admin
     plan: free
     region: oregon
-
-  - name: eterna-redis
-    plan: free
-    region: oregon
-    maxmemoryPolicy: noeviction
