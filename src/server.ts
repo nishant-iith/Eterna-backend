@@ -16,6 +16,22 @@ const start = async () => {
     try {
         await app.register(websocket);
 
+        // Register static file plugin
+        const path = require('path');
+        const fs = require('fs');
+        const fastifyStatic = require('@fastify/static');
+
+        await app.register(fastifyStatic, {
+            root: path.join(__dirname, '../public'),
+            prefix: '/'
+        });
+
+        // Serve frontend at root
+        app.get('/', async (request, reply) => {
+            const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf-8');
+            reply.type('text/html').send(html);
+        });
+
         // 1. HTTP Endpoint: Submit Order
         app.post('/api/orders/execute', async (request, reply) => {
             const { tokenIn, tokenOut, amount } = request.body as any;
@@ -54,18 +70,21 @@ const start = async () => {
             };
 
             // Listen for "completed" events
-            const onCompleted = ({ jobId, returnvalue }: any) => {
-                // Send to this connection only
-                if (socket.readyState === 1) {
-                    console.log(`Sending completion to client:`, returnvalue);
+            const onCompleted = async ({ jobId, returnvalue }: any) => {
+                // Fetch the job to check if it's for this orderId
+                const job = await orderQueue.getJob(jobId);
+                if (job && job.data?.orderId === orderId && socket.readyState === 1) {
+                    console.log(`Sending completion to client for order ${orderId}:`, returnvalue);
                     socket.send(JSON.stringify({ status: 'confirmed', data: returnvalue }));
                 }
             };
 
             // Listen for "failed" events
-            const onFailed = ({ jobId, failedReason }: any) => {
-                if (socket.readyState === 1) {
-                    console.log(`Sending failure to client:`, failedReason);
+            const onFailed = async ({ jobId, failedReason }: any) => {
+                // Fetch the job to check if it's for this orderId
+                const job = await orderQueue.getJob(jobId);
+                if (job && job.data?.orderId === orderId && socket.readyState === 1) {
+                    console.log(`Sending failure to client for order ${orderId}:`, failedReason);
                     socket.send(JSON.stringify({
                         status: 'failed',
                         error: failedReason,

@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eterna Order Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 0.8fr 2fr;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-submit {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-submit:hover {
+            background: #2980b9;
+        }
+
+        .btn-demo {
+            background: #27ae60;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .btn-demo:hover {
+            background: #229954;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .orders {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 16px;
+        }
+
+        .order {
+            background: white;
+            padding: 14px;
+            border-radius: 8px;
+            border-top: 4px solid #bdc3c7;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .order:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .order.status-pending { border-top-color: #f39c12; }
+        .order.status-routing { border-top-color: #3498db; }
+        .order.status-building { border-top-color: #16a085; }
+        .order.status-submitted { border-top-color: #2980b9; }
+        .order.status-confirmed { border-top-color: #27ae60; }
+        .order.status-failed { border-top-color: #e74c3c; }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .order-id {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .status {
+            padding: 5px 12px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pending { background: #fef5e7; color: #d68910; }
+        .status-routing { background: #ebf5fb; color: #2874a6; }
+        .status-building { background: #e8f8f5; color: #117864; }
+        .status-submitted { background: #d6eaf8; color: #1b4f72; }
+        .status-confirmed { background: #d5f4e6; color: #186a3b; }
+        .status-failed { background: #fadbd8; color: #943126; }
+
+        .order-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+        }
+
+        .info-label {
+            color: #7f8c8d;
+            font-size: 0.75rem;
+            min-width: 60px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .order-progress {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid #3498db;
+        }
+
+        .price-comparison {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f4f8;
+            border-radius: 6px;
+            border: 1px solid #bee5eb;
+        }
+
+        .price-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #2874a6;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dex-quotes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .dex-quote {
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border: 2px solid #dee2e6;
+        }
+
+        .dex-quote.winner {
+            border-color: #27ae60;
+            background: #d5f4e6;
+        }
+
+        .dex-name {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-bottom: 4px;
+        }
+
+        .dex-price {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .winner-badge {
+            display: inline-block;
+            background: #27ae60;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 8px;
+            margin-left: 5px;
+        }
+
+        .order-result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #d5f4e6;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            border: 1px solid #a9dfbf;
+        }
+
+        .order-result strong {
+            color: #186a3b;
+            font-size: 0.85rem;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .result-label {
+            color: #186a3b;
+            font-size: 0.75rem;
+        }
+
+        .result-value {
+            font-weight: 600;
+            color: #0e4b2a;
+            font-size: 0.9rem;
+        }
+
+        .order-error {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fadbd8;
+            border-radius: 6px;
+            color: #943126;
+            font-size: 0.85rem;
+            border: 1px solid #f5b7b1;
+        }
+
+        .empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #95a5a6;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Eterna Order Execution Engine</h1>
+
+        <div class="controls">
+            <form id="orderForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Token In</label>
+                        <select id="tokenIn">
+                            <option value="SOL">SOL</option>
+                            <option value="USDC">USDC</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Token Out</label>
+                        <select id="tokenOut">
+                            <option value="USDC">USDC</option>
+                            <option value="SOL">SOL</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount</label>
+                        <input type="number" id="amount" value="10" min="1" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Bulk Orders</label>
+                        <input type="number" id="bulkCount" value="5" min="1" max="20" step="1">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-submit">Execute Order</button>
+                        <button type="button" onclick="submitMultiple()" class="btn btn-demo">Submit Bulk</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-value" id="totalOrders">0</div>
+                <div class="stat-label">Total Orders</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="activeOrders">0</div>
+                <div class="stat-label">Active</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="completedOrders">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="failedOrders">0</div>
+                <div class="stat-label">Failed</div>
+            </div>
+        </div>
+
+        <div class="orders" id="orders">
+            <div class="empty">No orders yet. Submit an order to see real-time updates!</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+        const WS_URL = 'ws://localhost:3000';
+        const orders = new Map();
+
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const tokenIn = document.getElementById('tokenIn').value;
+            const tokenOut = document.getElementById('tokenOut').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            await submitOrder(tokenIn, tokenOut, amount);
+        });
+
+        async function submitOrder(tokenIn, tokenOut, amount) {
+            try {
+                const res = await fetch(`${API_URL}/api/orders/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tokenIn, tokenOut, amount })
+                });
+                const data = await res.json();
+                createOrder(data.orderId, tokenIn, tokenOut, amount);
+                connectWS(data.orderId);
+            } catch (error) {
+                alert('Error: Make sure server is running!');
+            }
+        }
+
+        async function submitMultiple() {
+            const count = parseInt(document.getElementById('bulkCount').value) || 5;
+            if (count < 1 || count > 20) {
+                alert('Please enter a number between 1 and 20');
+                return;
+            }
+
+            // Submit all orders in parallel to demonstrate concurrency
+            const promises = [];
+            for (let i = 0; i < count; i++) {
+                promises.push(submitOrder('SOL', 'USDC', 5 + i * 2));
+            }
+            await Promise.all(promises);
+            console.log(`✓ ${count} orders submitted concurrently!`);
+        }
+
+        function createOrder(id, tokenIn, tokenOut, amount) {
+            const container = document.getElementById('orders');
+            const empty = container.querySelector('.empty');
+            if (empty) empty.remove();
+
+            const div = document.createElement('div');
+            div.className = 'order status-pending';
+            div.id = `order-${id}`;
+            div.innerHTML = `
+                <div class="order-header">
+                    <span class="order-id">#${id.substring(0, 8)}</span>
+                    <span class="status status-pending">Pending</span>
+                </div>
+                <div class="order-info">
+                    <div class="info-item">
+                        <span class="info-label">Selling:</span>
+                        <span class="info-value">${amount} ${tokenIn}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Buying:</span>
+                        <span class="info-value" id="buying-${id}">${tokenOut}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Order ID:</span>
+                        <span class="info-value" style="font-size: 0.75rem; font-family: monospace;">${id}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Status:</span>
+                        <span class="info-value" id="time-${id}">Starting...</span>
+                    </div>
+                </div>
+                <div class="order-progress" id="progress-${id}">⏳ Waiting...</div>
+                <div id="prices-${id}"></div>
+            `;
+            container.insertBefore(div, container.firstChild);
+            orders.set(id, { status: 'pending', startTime: Date.now(), tokenIn, tokenOut, amount });
+            updateStats();
+        }
+
+        function connectWS(id) {
+            const ws = new WebSocket(`${WS_URL}/orders/${id}/ws`);
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('WebSocket data received:', data);  // Debug log
+                updateOrder(id, data);
+            };
+        }
+
+        function updateOrder(id, data) {
+            const order = orders.get(id);
+            if (!order) return;
+
+            order.status = data.status;
+
+            const card = document.getElementById(`order-${id}`);
+            card.className = `order status-${data.status}`;
+
+            const status = card.querySelector('.status');
+            status.className = `status status-${data.status}`;
+            status.textContent = data.status;
+
+            const progress = document.getElementById(`progress-${id}`);
+            progress.textContent = data.stage || data.message || data.status;
+
+            // Show price comparison when routing completes
+            if (data.quotes) {
+                const pricesDiv = document.getElementById(`prices-${id}`);
+                const { raydium, meteora } = data.quotes;
+                const winner = raydium.price < meteora.price ? 'raydium' : 'meteora';
+                const priceDiff = Math.abs(raydium.price - meteora.price);
+                const orderData = orders.get(id);
+                const savings = orderData ? (priceDiff * orderData.amount).toFixed(2) : priceDiff.toFixed(2);
+
+                pricesDiv.innerHTML = `
+                    <div class="price-comparison">
+                        <div class="price-title">💰 DEX Price Comparison</div>
+                        <div class="dex-quotes">
+                            <div class="dex-quote ${winner === 'raydium' ? 'winner' : ''}">
+                                <div class="dex-name">Raydium${winner === 'raydium' ? ' <span class="winner-badge">✓ BEST</span>' : ''}</div>
+                                <div class="dex-price">$${raydium.price.toFixed(2)}</div>
+                            </div>
+                            <div class="dex-quote ${winner === 'meteora' ? 'winner' : ''}">
+                                <div class="dex-name">Meteora${winner === 'meteora' ? ' <span class="winner-badge">✓ BEST</span>' : ''}</div>
+                                <div class="dex-price">$${meteora.price.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 8px; text-align: center; font-size: 0.75rem; color: #27ae60; font-weight: 600;">
+                            💚 Saved $${savings} by choosing ${winner === 'raydium' ? 'Raydium' : 'Meteora'}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (data.status === 'confirmed' && data.data) {
+                // Update the buying field with actual amount received
+                const buyingField = document.getElementById(`buying-${id}`);
+                const orderData = orders.get(id);
+                const tokenOut = orderData?.tokenOut || 'USDC';
+                if (buyingField) buyingField.innerHTML = `<strong>${data.data.amountOut.toFixed(4)} ${tokenOut}</strong>`;
+
+                // Update status field
+                const timeField = document.getElementById(`time-${id}`);
+                if (timeField) timeField.textContent = `Completed at ${new Date().toLocaleTimeString()}`;
+
+                const result = document.createElement('div');
+                result.className = 'order-result';
+                result.innerHTML = `
+                    <div><strong>✓ Order Completed Successfully</strong></div>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <span class="result-label">DEX Used:</span>
+                            <span class="result-value">${data.data.dex}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Execution Price:</span>
+                            <span class="result-value">$${data.data.finalPrice.toFixed(2)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">DEX Fee (0.3%):</span>
+                            <span class="result-value">$${(data.data.amountOut * 0.003).toFixed(2)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">TxHash:</span>
+                            <span class="result-value" style="font-size: 0.75rem; font-family: monospace;">${data.data.txHash}</span>
+                        </div>
+                    </div>
+                `;
+                const existing = card.querySelector('.order-result');
+                if (existing) existing.remove();
+                card.appendChild(result);
+            }
+
+            if (data.status === 'failed') {
+                // Update status field for failed orders
+                const timeField = document.getElementById(`time-${id}`);
+                if (timeField) timeField.textContent = `Failed at ${new Date().toLocaleTimeString()}`;
+
+                const error = document.createElement('div');
+                error.className = 'order-error';
+                const attemptInfo = data.attempt ? ` (Attempt ${data.attempt}/3)` : '';
+                error.innerHTML = `
+                    <strong>❌ Order Failed${attemptInfo}</strong><br>
+                    Error: ${data.error || data.message || 'Unknown error'}
+                `;
+                const existing = card.querySelector('.order-error');
+                if (existing) existing.remove();
+                card.appendChild(error);
+            }
+
+            updateStats();
+        }
+
+        function updateStats() {
+            const total = orders.size;
+            const active = Array.from(orders.values()).filter(o =>
+                !['confirmed', 'failed'].includes(o.status)
+            ).length;
+            const completed = Array.from(orders.values()).filter(o =>
+                o.status === 'confirmed'
+            ).length;
+            const failed = Array.from(orders.values()).filter(o =>
+                o.status === 'failed'
+            ).length;
+
+            document.getElementById('totalOrders').textContent = total;
+            document.getElementById('activeOrders').textContent = active;
+            document.getElementById('completedOrders').textContent = completed;
+            document.getElementById('failedOrders').textContent = failed;
+        }
+    </script>
+</body>
+</html>

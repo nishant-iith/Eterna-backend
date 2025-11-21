@@ -28,14 +28,17 @@ export const orderWorker = new Worker('order-queue', async (job: Job) => {
         // 1. Update Status: Routing
         await job.updateProgress({ orderId, status: 'routing', stage: 'Fetching quotes from Raydium & Meteora...' });
 
-        // Call Mock Router
-        const bestRoute = await router.findBestRoute(tokenIn, amount);
+        // Call Mock Router (returns both quotes and best route)
+        const routingResult = await router.findBestRoute(tokenIn, amount);
+        const bestRoute = routingResult.bestRoute;
+        const quotes = routingResult.quotes;
 
-        // 2. Update Status: Building
+        // 2. Update Status: Building (include price comparison)
         await job.updateProgress({
             orderId,
             status: 'building',
-            stage: `Route found: ${bestRoute.dex} @ $${bestRoute.price.toFixed(2)}. Building transaction...`
+            stage: `Route found: ${bestRoute.dex} @ $${bestRoute.price.toFixed(2)}. Building transaction...`,
+            quotes: quotes  // Send both DEX quotes
         });
 
         // Simulate building transaction
@@ -74,7 +77,8 @@ export const orderWorker = new Worker('order-queue', async (job: Job) => {
             status: 'completed',
             txHash,
             finalPrice: bestRoute.price,
-            dex: bestRoute.dex
+            dex: bestRoute.dex,
+            amountOut  // Include output amount
         };
 
     } catch (error) {

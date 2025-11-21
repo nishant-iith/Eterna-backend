@@ -8,8 +8,11 @@ export class MockDexRouter {
         const delay = Math.floor(Math.random() * 300) + 200;
         await new Promise(resolve => setTimeout(resolve, delay));
 
-        // Add random variance (-1% to +1%) to base price
-        const variance = 1 + (Math.random() * 0.02 - 0.01);
+        // Add random variance (2-5% difference) as per assignment
+        // Raydium: -2% to +2%, Meteora: -1% to +4%
+        const varianceRange = dex === 'Raydium' ? 0.04 : 0.05;
+        const varianceOffset = dex === 'Raydium' ? -0.02 : -0.01;
+        const variance = 1 + (Math.random() * varianceRange + varianceOffset);
         const price = basePrice * variance;
 
         return { dex, price, fee: 0.003 }; // 0.3% fee
@@ -27,9 +30,13 @@ export class MockDexRouter {
 
         console.log(`Quotes: Raydium ($${raydium.price.toFixed(2)}), Meteora ($${meteora.price.toFixed(2)})`);
 
-        // Return the DEX with the higher price (selling) or lower (buying)
-        // For simplicity, let's assume we are buying, so we want the LOWER price.
-        return raydium.price < meteora.price ? raydium : meteora;
+        // Return the DEX with the lower price (we're buying)
+        const bestRoute = raydium.price < meteora.price ? raydium : meteora;
+
+        return {
+            bestRoute,
+            quotes: { raydium, meteora }
+        };
     }
 
     // Simulate the actual transaction on Solana
