@@ -5,7 +5,11 @@ import IORedis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 
 const app = Fastify({ logger: true });
-const redisConnection = new IORedis({ host: 'localhost', port: 6379, maxRetriesPerRequest: null });
+const redisConnection = new IORedis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    maxRetriesPerRequest: null
+});
 
 // Setup Queue
 const orderQueue = new Queue('order-queue', { connection: redisConnection });

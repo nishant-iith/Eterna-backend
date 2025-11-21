@@ -9,6 +9,7 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run worker\"",
     "build": "tsc",
     "start": "node dist/server.js",
+    "start:worker": "node dist/worker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

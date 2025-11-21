@@ -3,7 +3,11 @@ import { MockDexRouter } from './services/mockDex';
 import { saveOrder } from './db/connection';
 import IORedis from 'ioredis';
 
-const redisConnection = new IORedis({ host: 'localhost', port: 6379, maxRetriesPerRequest: null });
+const redisConnection = new IORedis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    maxRetriesPerRequest: null
+});
 const router = new MockDexRouter();
 
 export const orderWorker = new Worker('order-queue', async (job: Job) => {
