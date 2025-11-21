@@ -150,7 +150,40 @@ Server starts on: `http://localhost:3000`
 
 ## How to Use
 
-### 1. Submit an Order
+### Option 1: Web Interface (Recommended)
+
+**Simply open your browser and visit:**
+```
+http://localhost:3000
+```
+
+**Features:**
+- **Modern Tile Layout** - Orders displayed as responsive cards in a grid
+- **Single Order** - Fill in token details and click "Execute Order"
+- **Bulk Orders** - Enter number (1-20) and click "Submit Bulk" to test concurrency
+- **Real-time Updates** - All order progress displayed live via WebSocket
+- **Price Comparison** - See Raydium vs Meteora quotes side-by-side
+- **Savings Display** - Shows how much you saved by choosing the best DEX
+- **Complete Details** - View all order information:
+  - Selling: Input amount with token symbol
+  - Buying: Output amount with token symbol (updates when complete)
+  - Full Order ID
+  - DEX Used
+  - Execution Price
+  - DEX Fee (0.3%)
+  - Full Transaction Hash
+  - Status with timestamps
+  - Error messages with retry attempts
+
+**Dashboard Stats:**
+- Total Orders
+- Active Orders
+- Completed Orders
+- Failed Orders
+
+### Option 2: API + Manual WebSocket (For Testing)
+
+#### 1. Submit an Order
 
 ```bash
 curl -X POST http://localhost:3000/api/orders/execute \
@@ -171,7 +204,7 @@ curl -X POST http://localhost:3000/api/orders/execute \
 }
 ```
 
-### 2. Connect to WebSocket for Live Updates
+#### 2. Connect to WebSocket for Live Updates
 
 Open WebSocket connection:
 ```
@@ -182,9 +215,9 @@ ws://localhost:3000/orders/7e5af576-49fa-4a19-a3a3-47539d4b5b88/ws
 ```json
 {"status": "connected", "message": "Listening for updates..."}
 {"status": "routing", "stage": "Fetching quotes from Raydium & Meteora..."}
-{"status": "building", "stage": "Route found: Meteora @ $149.80"}
+{"status": "building", "stage": "Route found: Meteora @ $149.80", "quotes": {"raydium": {"dex": "Raydium", "price": 150.20}, "meteora": {"dex": "Meteora", "price": 149.80}}}
 {"status": "submitted", "stage": "Transaction sent to network"}
-{"status": "confirmed", "data": {"txHash": "5Kj...abc", "finalPrice": 149.80, "dex": "Meteora"}}
+{"status": "confirmed", "data": {"txHash": "5Kj...abc", "finalPrice": 149.80, "dex": "Meteora", "amountOut": 1498.0}}
 ```
 
 ## Tech Stack
@@ -195,6 +228,7 @@ ws://localhost:3000/orders/7e5af576-49fa-4a19-a3a3-47539d4b5b88/ws
 | **API Server** | Fastify | Fast, built-in WebSocket support |
 | **Queue** | BullMQ + Redis | Handles retries, manages concurrent jobs |
 | **Database** | PostgreSQL | Reliable storage for order history |
+| **Frontend** | HTML/CSS/JS | Simple, no-build interface with real-time updates |
 | **Infrastructure** | Docker | Easy local development |
 
 ## Key Features
@@ -207,10 +241,17 @@ ws://localhost:3000/orders/7e5af576-49fa-4a19-a3a3-47539d4b5b88/ws
 ### Real-time Updates
 - WebSocket connection for live status
 - See every step: routing → building → submitted → confirmed
+- Interactive web interface with live order cards
 
 ### Concurrent Processing
 - Handles 10 orders at the same time
 - Can process 100+ orders per minute
+- Test with bulk submission (1-20 orders simultaneously)
+
+### Price Comparison & Savings
+- Shows quotes from both Raydium and Meteora
+- Highlights the best price with winner badge
+- Calculates and displays savings amount
 
 ### Error Handling
 - Retries failed orders 3 times
@@ -250,6 +291,9 @@ src/
 ├── worker.ts               # Order processor
 └── types.ts                # TypeScript types
 
+public/
+└── index.html              # Web UI frontend
+
 docker-compose.yml          # Redis + PostgreSQL setup
 ```
 
@@ -273,7 +317,22 @@ Instead of MongoDB:
 - **Complex queries** - Filter by status, date, DEX, etc.
 - **Transactions** - Update orders safely
 
-### 4. Artificial Delay for WebSocket Testing
+### 4. Why Tile-Based Frontend?
+Instead of a simple table or list:
+- **Better UX** - Each order has dedicated card with all details
+- **Responsive Grid** - Automatically adjusts to screen size
+- **Real-time Visual** - Color-coded status borders and badges
+- **Information Dense** - Shows all order details without scrolling
+- **Modern Design** - Clean, professional interface
+
+### 5. Why Concurrent Bulk Submission?
+Frontend can submit multiple orders simultaneously:
+- **Tests Concurrency** - Proves 10 workers handle concurrent orders
+- **User Control** - Choose 1-20 orders to submit at once
+- **Realistic Load** - Simulates multiple users trading
+- **Performance Demo** - See orders process in parallel, not sequential
+
+### 6. Artificial Delay for WebSocket Testing
 The worker includes a **2-second delay** at the start:
 ```typescript
 // Artificial delay to test WebSocket (for testing purposes)
