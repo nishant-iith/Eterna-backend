@@ -1,59 +1,17 @@
 services:
-  # Web Server
+  # Web Server (runs both server and worker in same process for free tier)
   - type: web
     name: eterna-server
     env: node
     region: oregon
     plan: free
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: npm run start:production
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
-      - key: POSTGRES_HOST
-        fromDatabase:
-          name: eterna-db
-          property: host
-      - key: POSTGRES_PORT
-        fromDatabase:
-          name: eterna-db
-          property: port
-      - key: POSTGRES_USER
-        fromDatabase:
-          name: eterna-db
-          property: user
-      - key: POSTGRES_PASSWORD
-        fromDatabase:
-          name: eterna-db
-          property: password
-      - key: POSTGRES_DB
-        fromDatabase:
-          name: eterna-db
-          property: database
-      - key: REDIS_HOST
-        fromService:
-          type: redis
-          name: eterna-redis
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          type: redis
-          name: eterna-redis
-          property: port
-
-  # Worker Process
-  - type: worker
-    name: eterna-worker
-    env: node
-    region: oregon
-    plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm run start:worker
-    envVars:
-      - key: NODE_ENV
-        value: production
       - key: POSTGRES_HOST
         fromDatabase:
           name: eterna-db
