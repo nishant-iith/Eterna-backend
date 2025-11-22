@@ -3,6 +3,7 @@ import websocket from '@fastify/websocket';
 import { Queue, QueueEvents } from 'bullmq';
 import IORedis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
+import { pool } from './db/connection';
 
 const app = Fastify({ logger: true });
 const redisConnection = new IORedis({
@@ -51,6 +52,35 @@ const start = async () => {
             });
 
             return { orderId, status: 'pending', message: 'Order queued. Connect to WS for updates.' };
+        });
+
+        // GET: Fetch all orders from database
+        app.get('/api/orders', async (request, reply) => {
+            try {
+                const result = await pool.query(
+                    'SELECT * FROM orders ORDER BY created_at DESC LIMIT 50'
+                );
+                return { orders: result.rows, count: result.rows.length };
+            } catch (err: any) {
+                reply.status(500).send({ error: err.message });
+            }
+        });
+
+        // GET: Fetch single order by ID
+        app.get('/api/orders/:id', async (request, reply) => {
+            const { id } = request.params as any;
+            try {
+                const result = await pool.query(
+                    'SELECT * FROM orders WHERE order_id = $1',
+                    [id]
+                );
+                if (result.rows.length === 0) {
+                    return reply.status(404).send({ error: 'Order not found' });
+                }
+                return result.rows[0];
+            } catch (err: any) {
+                reply.status(500).send({ error: err.message });
+            }
         });
 
         // 2. WebSocket Endpoint: Live Updates
