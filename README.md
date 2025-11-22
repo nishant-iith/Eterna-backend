@@ -2,6 +2,12 @@
 
 A crypto trading engine that automatically finds the best price between two exchanges (Raydium and Meteora) and executes your order in real-time.
 
+## Live Demo
+
+**Try it now:** [https://eterna-server.onrender.com/](https://eterna-server.onrender.com/)
+
+> **Note:** The service is hosted on Render's free tier, so it may take 20-30 seconds to wake up on the first request.
+
 ## What Does This Do?
 
 You want to buy SOL tokens. Instead of manually checking prices on different exchanges, this system:

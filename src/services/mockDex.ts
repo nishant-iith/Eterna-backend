@@ -30,8 +30,8 @@ export class MockDexRouter {
 
         console.log(`Quotes: Raydium ($${raydium.price.toFixed(2)}), Meteora ($${meteora.price.toFixed(2)})`);
 
-        // Return the DEX with the lower price (we're buying)
-        const bestRoute = raydium.price < meteora.price ? raydium : meteora;
+        // Return the DEX with the higher price (we're selling tokenIn to get more tokenOut)
+        const bestRoute = raydium.price > meteora.price ? raydium : meteora;
 
         return {
             bestRoute,
