@@ -387,11 +387,11 @@ npm start            # Run production build
 
 ## Deployment
 
-**Live URL:** _Coming soon_
+**Live URL:** https://eterna-server.onrender.com/
 
 ## Demo Video
 
-**YouTube Link:** _Coming soon_
+**YouTube Link:** https://youtu.be/L6GObBMTQyQ
 
 ## Troubleshotas
 
