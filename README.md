@@ -389,6 +389,47 @@ npm start            # Run production build
 
 **Live URL:** https://eterna-server.onrender.com/
 
+## Public API Endpoints
+
+### Base URL
+```
+https://eterna-server.onrender.com
+```
+
+### Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Web UI Frontend |
+| POST | `/api/orders/execute` | Submit a new order |
+| GET | `/api/orders` | Get all orders from database |
+| GET | `/api/orders/:id` | Get single order by ID |
+| WS | `/orders/:id/ws` | WebSocket for live order updates |
+
+### API Examples
+
+**1. Submit Order**
+```bash
+curl -X POST https://eterna-server.onrender.com/api/orders/execute \
+  -H "Content-Type: application/json" \
+  -d '{"tokenIn": "SOL", "tokenOut": "USDC", "amount": 10}'
+```
+
+**2. Get All Orders**
+```bash
+curl https://eterna-server.onrender.com/api/orders
+```
+
+**3. Get Single Order**
+```bash
+curl https://eterna-server.onrender.com/api/orders/7e5af576-49fa-4a19-a3a3-47539d4b5b88
+```
+
+**4. WebSocket Connection**
+```
+wss://eterna-server.onrender.com/orders/7e5af576-49fa-4a19-a3a3-47539d4b5b88/ws
+```
+
 ## Demo Video
 
 **YouTube Link:** https://youtu.be/L6GObBMTQyQ
@@ -417,7 +458,7 @@ docker ps | grep postgres
 - [ ] Add Limit Order support
 - [ ] Add Sniper Order support
 - [ ] Real Solana devnet integration
-- [ ] Order history API endpoint
+- [x] Order history API endpoint
 
 ---
 
