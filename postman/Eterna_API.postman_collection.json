@@ -1,0 +1,228 @@
+{
+	"info": {
+		"_postman_id": "eterna-order-engine",
+		"name": "Eterna Order Execution Engine",
+		"description": "API collection for the Eterna Order Execution Engine.\n\n## Features\n- Market order execution with DEX routing (Raydium vs Meteora)\n- Real-time WebSocket status updates\n- PostgreSQL order persistence\n- BullMQ queue with 10 concurrent workers\n\n## Base URLs\n- **Production:** https://eterna-server.onrender.com\n- **Local:** http://localhost:3000\n\n## WebSocket\nAfter submitting an order, connect to WebSocket for real-time updates:\n- Local: `ws://localhost:3000/orders/{orderId}/ws`\n- Production: `wss://eterna-server.onrender.com/orders/{orderId}/ws`",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://eterna-server.onrender.com",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Execute Market Order",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has orderId', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('orderId');",
+							"});",
+							"",
+							"pm.test('Status is pending', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.status).to.eql('pending');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tokenIn\": \"SOL\",\n    \"tokenOut\": \"USDC\",\n    \"amount\": 10\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/orders/execute",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "orders", "execute"]
+				},
+				"description": "Submit a market order for execution.\n\n**Request Body:**\n- `tokenIn` (string): Token to sell (e.g., SOL)\n- `tokenOut` (string): Token to buy (e.g., USDC)\n- `amount` (number): Amount of tokenIn to sell\n\n**Response:**\n- `orderId`: UUID for tracking\n- `status`: \"pending\"\n- `message`: WebSocket connection instructions\n\n**Order Flow:**\n1. Order queued in BullMQ\n2. Worker fetches quotes from Raydium & Meteora\n3. Best price DEX selected\n4. Order executed\n5. Result saved to PostgreSQL"
+			},
+			"response": [
+				{
+					"name": "Success Response",
+					"originalRequest": {
+						"method": "POST",
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"tokenIn\": \"SOL\",\n    \"tokenOut\": \"USDC\",\n    \"amount\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/execute",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", "execute"]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"body": "{\n    \"orderId\": \"7e5af576-49fa-4a19-a3a3-47539d4b5b88\",\n    \"status\": \"pending\",\n    \"message\": \"Order queued. Connect to WS for updates.\"\n}"
+				}
+			]
+		},
+		{
+			"name": "Execute Order - Large Amount",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tokenIn\": \"SOL\",\n    \"tokenOut\": \"USDC\",\n    \"amount\": 100\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/orders/execute",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "orders", "execute"]
+				},
+				"description": "Execute a larger market order (100 SOL → USDC)"
+			},
+			"response": []
+		},
+		{
+			"name": "Execute Order - ETH to USDT",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tokenIn\": \"ETH\",\n    \"tokenOut\": \"USDT\",\n    \"amount\": 5\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/orders/execute",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "orders", "execute"]
+				},
+				"description": "Execute order with different token pair"
+			},
+			"response": []
+		},
+		{
+			"name": "Bulk Order 1",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tokenIn\": \"SOL\",\n    \"tokenOut\": \"USDC\",\n    \"amount\": 7\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/orders/execute",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "orders", "execute"]
+				},
+				"description": "Bulk test order 1 - Run multiple orders to test concurrency"
+			},
+			"response": []
+		},
+		{
+			"name": "Bulk Order 2",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tokenIn\": \"SOL\",\n    \"tokenOut\": \"USDC\",\n    \"amount\": 9\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/orders/execute",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "orders", "execute"]
+				},
+				"description": "Bulk test order 2"
+			},
+			"response": []
+		},
+		{
+			"name": "Bulk Order 3",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tokenIn\": \"SOL\",\n    \"tokenOut\": \"USDC\",\n    \"amount\": 11\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/orders/execute",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "orders", "execute"]
+				},
+				"description": "Bulk test order 3"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Frontend",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Returns HTML', function () {",
+							"    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/html');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/",
+					"host": ["{{baseUrl}}"],
+					"path": [""]
+				},
+				"description": "Get the web frontend with order submission form and real-time tracking"
+			},
+			"response": []
+		}
+	]
+}
